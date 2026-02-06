@@ -4,9 +4,14 @@
  * Strategy: bind pointer/touch events DIRECTLY on each button element
  * (not on document, not using elementFromPoint).
  * This is the most reliable approach across iOS Safari, Chrome, etc.
+ *
+ * DEBUG: console.log statements added for mobile debugging.
+ * Remove after touch issues are resolved.
  */
 
 import { BUTTONS, type ButtonCallback } from '../emulator/input';
+
+const DBG = '[Gamepad]';
 
 const isTouchDevice = (): boolean =>
   'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -36,7 +41,12 @@ export class VirtualGamepad {
     onBtnDown: ButtonCallback,
     onBtnUp: ButtonCallback
   ): void {
-    if (!this.isTouch) return;
+    console.log(DBG, 'show() called, isTouch =', this.isTouch, 'parent =', parent?.tagName, parent?.id);
+
+    if (!this.isTouch) {
+      console.log(DBG, 'NOT a touch device — skipping gamepad');
+      return;
+    }
 
     this.onBtnDown = onBtnDown;
     this.onBtnUp = onBtnUp;
@@ -47,6 +57,9 @@ export class VirtualGamepad {
     this.container.innerHTML = this.buildHTML();
     parent.appendChild(this.container);
     this.bind();
+
+    console.log(DBG, 'show() complete — container appended, events bound');
+    console.log(DBG, 'onBtnDown is', typeof this.onBtnDown, '/ onBtnUp is', typeof this.onBtnUp);
   }
 
   hide(): void {
@@ -92,54 +105,66 @@ export class VirtualGamepad {
 
     // Bind events on each button directly
     const btns = this.container.querySelectorAll<HTMLElement>('[data-btn]');
+    console.log(DBG, 'bind() found', btns.length, 'buttons');
+
     btns.forEach((el) => {
       const name = el.dataset.btn!;
+      console.log(DBG, `  binding [${name}] on`, el.tagName, el.className);
 
-      // Use BOTH pointer events AND touch events for maximum compatibility.
-      // Pointer events: preferred, work on modern iOS/Android/desktop.
-      // Touch events: fallback, always fire on mobile.
-      // The press/release methods are idempotent so double-firing is safe.
-
+      // === Pointer Events ===
       el.addEventListener('pointerdown', (e) => {
+        console.log(DBG, `pointerdown [${name}] target=`, (e.target as HTMLElement).tagName, (e.target as HTMLElement).className);
         e.preventDefault();
         this.press(name, el);
       });
       el.addEventListener('pointerup', (e) => {
+        console.log(DBG, `pointerup [${name}]`);
         e.preventDefault();
         this.release(name, el);
       });
       el.addEventListener('pointercancel', () => {
+        console.log(DBG, `pointercancel [${name}]`);
         this.release(name, el);
       });
-      // lostpointercapture fires when implicit capture ends (finger lifted)
       el.addEventListener('lostpointercapture', () => {
+        console.log(DBG, `lostpointercapture [${name}]`);
         this.release(name, el);
       });
 
-      // Touch event fallback (fires after pointer events, safe due to idempotent handlers)
+      // === Touch Events (fallback) ===
       el.addEventListener('touchstart', () => {
+        console.log(DBG, `touchstart [${name}]`);
         this.press(name, el);
       });
       el.addEventListener('touchend', () => {
+        console.log(DBG, `touchend [${name}]`);
         this.release(name, el);
       });
       el.addEventListener('touchcancel', () => {
+        console.log(DBG, `touchcancel [${name}]`);
         this.release(name, el);
       });
     });
   }
 
   private press(name: string, el: HTMLElement): void {
-    if (this.pressedBtns.has(name)) return;
+    if (this.pressedBtns.has(name)) {
+      console.log(DBG, `press [${name}] — SKIPPED (already pressed)`);
+      return;
+    }
     this.pressedBtns.add(name);
     el.classList.add('pressed');
 
     const code = BTN_MAP[name];
+    console.log(DBG, `press [${name}] code=${code} onBtnDown=${typeof this.onBtnDown}`);
+
     if (code !== undefined && this.onBtnDown) {
       this.onBtnDown(1, code);
+      console.log(DBG, `>>> onBtnDown(1, ${code}) CALLED for [${name}]`);
+    } else {
+      console.warn(DBG, `press [${name}] — NOT SENT! code=${code} onBtnDown=${this.onBtnDown}`);
     }
 
-    // Haptic feedback (Android only, iOS doesn't support vibrate)
     try { navigator.vibrate?.(10); } catch { /* ignore */ }
   }
 
@@ -149,6 +174,8 @@ export class VirtualGamepad {
     el.classList.remove('pressed');
 
     const code = BTN_MAP[name];
+    console.log(DBG, `release [${name}] code=${code}`);
+
     if (code !== undefined && this.onBtnUp) {
       this.onBtnUp(1, code);
     }

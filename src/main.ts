@@ -66,11 +66,18 @@ async function handleGameSelect(game: Game): Promise<void> {
 
     // Show virtual gamepad on touch devices
     const gpContainer = ui.getGamepadContainer();
+    console.log('[Main] gpContainer =', gpContainer?.tagName, gpContainer?.id, 'isTouch =', gamepad.isTouch);
     if (gpContainer) {
       gamepad.show(
         gpContainer,
-        (player, button) => emulator.buttonDown(player, button),
-        (player, button) => emulator.buttonUp(player, button)
+        (player, button) => {
+          console.log('[Main] >>> buttonDown', player, button);
+          emulator.buttonDown(player, button);
+        },
+        (player, button) => {
+          console.log('[Main] >>> buttonUp', player, button);
+          emulator.buttonUp(player, button);
+        }
       );
     }
   } catch (err) {

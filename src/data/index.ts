@@ -1,0 +1,1 @@
+export { GAMES } from './games';

@@ -1,6 +1,7 @@
 /**
  * Virtual Gamepad for mobile touch controls
- * Renders an NES-style controller overlay with D-pad, A/B, Start/Select
+ * Renders an NES-style controller below the game canvas
+ * Uses document-level touch tracking for reliable multi-touch
  */
 
 import { BUTTONS, type ButtonCallback } from '../emulator/input';
@@ -8,16 +9,29 @@ import { BUTTONS, type ButtonCallback } from '../emulator/input';
 const isTouchDevice = (): boolean =>
   'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
+/** Map data-btn attribute values to BUTTONS constants */
+const BTN_MAP: Record<string, number> = {
+  UP: BUTTONS.UP,
+  DOWN: BUTTONS.DOWN,
+  LEFT: BUTTONS.LEFT,
+  RIGHT: BUTTONS.RIGHT,
+  A: BUTTONS.A,
+  B: BUTTONS.B,
+  SELECT: BUTTONS.SELECT,
+  START: BUTTONS.START,
+};
+
 export class VirtualGamepad {
   private container: HTMLElement | null = null;
   private onButtonDown: ButtonCallback | null = null;
   private onButtonUp: ButtonCallback | null = null;
-  private activeButtons: Set<string> = new Set();
+  private activeButtons: Map<number, string> = new Map(); // touchId -> btnName
+  private handleTouchStart: ((e: TouchEvent) => void) | null = null;
+  private handleTouchMove: ((e: TouchEvent) => void) | null = null;
+  private handleTouchEnd: ((e: TouchEvent) => void) | null = null;
 
-  /** Whether the device supports touch */
   readonly isTouch = isTouchDevice();
 
-  /** Show the gamepad (attach to DOM) */
   show(
     parent: HTMLElement,
     onButtonDown: ButtonCallback,
@@ -27,8 +41,6 @@ export class VirtualGamepad {
 
     this.onButtonDown = onButtonDown;
     this.onButtonUp = onButtonUp;
-
-    // Remove existing if any
     this.hide();
 
     this.container = document.createElement('div');
@@ -38,8 +50,8 @@ export class VirtualGamepad {
     this.bindTouch();
   }
 
-  /** Hide and remove the gamepad */
   hide(): void {
+    this.unbindTouch();
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -51,95 +63,149 @@ export class VirtualGamepad {
 
   private buildHTML(): string {
     return `
-      <div class="vgamepad-dpad">
-        <button class="vgamepad-btn vgamepad-up" data-btn="UP" aria-label="Up"></button>
-        <button class="vgamepad-btn vgamepad-left" data-btn="LEFT" aria-label="Left"></button>
-        <div class="vgamepad-dpad-center"></div>
-        <button class="vgamepad-btn vgamepad-right" data-btn="RIGHT" aria-label="Right"></button>
-        <button class="vgamepad-btn vgamepad-down" data-btn="DOWN" aria-label="Down"></button>
+      <div class="vgamepad-left">
+        <div class="vgamepad-dpad">
+          <div class="vgamepad-btn vgamepad-up" data-btn="UP">
+            <span class="vgamepad-arrow">▲</span>
+          </div>
+          <div class="vgamepad-btn vgamepad-left-btn" data-btn="LEFT">
+            <span class="vgamepad-arrow">◀</span>
+          </div>
+          <div class="vgamepad-dpad-center"></div>
+          <div class="vgamepad-btn vgamepad-right-btn" data-btn="RIGHT">
+            <span class="vgamepad-arrow">▶</span>
+          </div>
+          <div class="vgamepad-btn vgamepad-down" data-btn="DOWN">
+            <span class="vgamepad-arrow">▼</span>
+          </div>
+        </div>
       </div>
-      <div class="vgamepad-middle">
-        <button class="vgamepad-btn vgamepad-fn" data-btn="SELECT">SELECT</button>
-        <button class="vgamepad-btn vgamepad-fn" data-btn="START">START</button>
+      <div class="vgamepad-center">
+        <div class="vgamepad-btn vgamepad-fn" data-btn="SELECT">SELECT</div>
+        <div class="vgamepad-btn vgamepad-fn" data-btn="START">START</div>
       </div>
-      <div class="vgamepad-ab">
-        <button class="vgamepad-btn vgamepad-action vgamepad-b" data-btn="B">B</button>
-        <button class="vgamepad-btn vgamepad-action vgamepad-a" data-btn="A">A</button>
+      <div class="vgamepad-right">
+        <div class="vgamepad-btn vgamepad-action vgamepad-b" data-btn="B">B</div>
+        <div class="vgamepad-btn vgamepad-action vgamepad-a" data-btn="A">A</div>
       </div>
     `;
   }
 
+  /** Use document-level touch listeners for reliable tracking */
   private bindTouch(): void {
     if (!this.container) return;
 
-    const buttons = this.container.querySelectorAll<HTMLElement>('.vgamepad-btn');
-
-    buttons.forEach((btn) => {
-      const name = btn.dataset.btn;
-      if (!name) return;
-
-      // touchstart → press
-      btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.press(name);
-        btn.classList.add('pressed');
-        this.vibrate();
-      }, { passive: false });
-
-      // touchend → release
-      btn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        this.release(name);
-        btn.classList.remove('pressed');
-      }, { passive: false });
-
-      // touchcancel → release
-      btn.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        this.release(name);
-        btn.classList.remove('pressed');
-      }, { passive: false });
-
-      // Prevent context menu on long press
-      btn.addEventListener('contextmenu', (e) => e.preventDefault());
-    });
-
-    // Prevent scroll/zoom on the entire gamepad area
+    // Prevent scrolling/zooming on the gamepad area
     this.container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     this.container.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    this.handleTouchStart = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const btn = this.getBtnAt(touch.clientX, touch.clientY);
+        if (btn) {
+          e.preventDefault();
+          this.pressBtn(touch.identifier, btn);
+        }
+      }
+    };
+
+    this.handleTouchMove = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const oldBtn = this.activeButtons.get(touch.identifier);
+        const newBtn = this.getBtnAt(touch.clientX, touch.clientY);
+
+        if (oldBtn && oldBtn !== newBtn) {
+          // Finger slid off a button
+          this.releaseBtn(touch.identifier);
+        }
+        if (newBtn && newBtn !== oldBtn) {
+          // Finger slid onto a new button
+          this.pressBtn(touch.identifier, newBtn);
+        }
+      }
+    };
+
+    this.handleTouchEnd = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (this.activeButtons.has(touch.identifier)) {
+          e.preventDefault();
+          this.releaseBtn(touch.identifier);
+        }
+      }
+    };
+
+    document.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    document.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+    document.addEventListener('touchcancel', this.handleTouchEnd, { passive: false });
   }
 
-  private press(name: string): void {
-    if (this.activeButtons.has(name)) return;
-    this.activeButtons.add(name);
-    const button = BUTTONS[name as keyof typeof BUTTONS];
-    if (button !== undefined) {
-      this.onButtonDown?.(1, button);
+  private unbindTouch(): void {
+    if (this.handleTouchStart) {
+      document.removeEventListener('touchstart', this.handleTouchStart);
+      this.handleTouchStart = null;
+    }
+    if (this.handleTouchMove) {
+      document.removeEventListener('touchmove', this.handleTouchMove);
+      this.handleTouchMove = null;
+    }
+    if (this.handleTouchEnd) {
+      document.removeEventListener('touchend', this.handleTouchEnd);
+      document.removeEventListener('touchcancel', this.handleTouchEnd);
+      this.handleTouchEnd = null;
     }
   }
 
-  private release(name: string): void {
-    if (!this.activeButtons.has(name)) return;
-    this.activeButtons.delete(name);
-    const button = BUTTONS[name as keyof typeof BUTTONS];
-    if (button !== undefined) {
-      this.onButtonUp?.(1, button);
+  /** Find which gamepad button is at (x, y) screen coordinates */
+  private getBtnAt(x: number, y: number): string | null {
+    const el = document.elementFromPoint(x, y);
+    if (!el || !this.container?.contains(el)) return null;
+    const btnEl = (el as HTMLElement).closest('[data-btn]') as HTMLElement | null;
+    return btnEl?.dataset.btn ?? null;
+  }
+
+  private pressBtn(touchId: number, btnName: string): void {
+    this.activeButtons.set(touchId, btnName);
+    const code = BTN_MAP[btnName];
+    if (code !== undefined) {
+      this.onButtonDown?.(1, code);
+    }
+    // Visual feedback
+    this.container?.querySelectorAll(`[data-btn="${btnName}"]`)
+      .forEach((el) => el.classList.add('pressed'));
+    this.vibrate();
+  }
+
+  private releaseBtn(touchId: number): void {
+    const btnName = this.activeButtons.get(touchId);
+    if (!btnName) return;
+    this.activeButtons.delete(touchId);
+
+    // Only release if no other finger is on the same button
+    const stillHeld = [...this.activeButtons.values()].includes(btnName);
+    if (!stillHeld) {
+      const code = BTN_MAP[btnName];
+      if (code !== undefined) {
+        this.onButtonUp?.(1, code);
+      }
+      this.container?.querySelectorAll(`[data-btn="${btnName}"]`)
+        .forEach((el) => el.classList.remove('pressed'));
     }
   }
 
   private releaseAll(): void {
-    for (const name of this.activeButtons) {
-      const button = BUTTONS[name as keyof typeof BUTTONS];
-      if (button !== undefined) {
-        this.onButtonUp?.(1, button);
-      }
+    for (const [touchId] of this.activeButtons) {
+      this.releaseBtn(touchId);
     }
     this.activeButtons.clear();
   }
 
   private vibrate(): void {
     if (navigator.vibrate) {
-      navigator.vibrate(12);
+      navigator.vibrate(10);
     }
   }
 }

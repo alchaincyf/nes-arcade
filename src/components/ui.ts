@@ -230,12 +230,12 @@ export class GameUI {
           <div class="player-canvas-wrapper">
             <canvas class="player-canvas" id="nes-canvas" width="256" height="240"></canvas>
             <div class="player-scanlines"></div>
-            <div id="gamepad-container"></div>
             <div class="player-loading" id="player-loading">
               <div class="player-loading-spinner"></div>
               <div class="player-loading-text">ROM LOADING...</div>
             </div>
           </div>
+          <div id="gamepad-container"></div>
           <div class="player-controls">
             <button class="player-btn" id="btn-start">START</button>
             <button class="player-btn" id="btn-pause">PAUSE</button>

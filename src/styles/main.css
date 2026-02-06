@@ -946,220 +946,211 @@ canvas {
 /* ========================================
    Virtual Gamepad — Mobile Touch Controls
    ======================================== */
+
+/* Hide gamepad by default (only shown on touch devices via JS) */
 .vgamepad {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 16px 20px 24px;
-  pointer-events: none;
-  z-index: 10;
-  /* Fade-in gradient so it doesn't obscure the game too harshly */
-  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%);
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
+  display: none;
 }
 
-.vgamepad * {
-  pointer-events: auto;
-  touch-action: none;
-}
-
-/* Reset button appearance */
-.vgamepad-btn {
-  border: none;
-  outline: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  font-family: var(--font-pixel);
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* ---- D-Pad ---- */
-.vgamepad-dpad {
-  display: grid;
-  grid-template-columns: 52px 52px 52px;
-  grid-template-rows: 52px 52px 52px;
-  gap: 0;
-  flex-shrink: 0;
-}
-
-.vgamepad-dpad-center {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 2px;
-}
-
-.vgamepad-up,
-.vgamepad-down,
-.vgamepad-left,
-.vgamepad-right {
-  background: rgba(40, 40, 60, 0.85);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.08s;
-}
-
-/* Arrows via CSS borders */
-.vgamepad-up::after,
-.vgamepad-down::after,
-.vgamepad-left::after,
-.vgamepad-right::after {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-  border: 8px solid transparent;
-}
-
-.vgamepad-up {
-  grid-column: 2;
-  grid-row: 1;
-  border-radius: 6px 6px 0 0;
-}
-.vgamepad-up::after {
-  border-bottom: 10px solid rgba(255, 255, 255, 0.5);
-  border-top: none;
-}
-
-.vgamepad-down {
-  grid-column: 2;
-  grid-row: 3;
-  border-radius: 0 0 6px 6px;
-}
-.vgamepad-down::after {
-  border-top: 10px solid rgba(255, 255, 255, 0.5);
-  border-bottom: none;
-}
-
-.vgamepad-left {
-  grid-column: 1;
-  grid-row: 2;
-  border-radius: 6px 0 0 6px;
-}
-.vgamepad-left::after {
-  border-right: 10px solid rgba(255, 255, 255, 0.5);
-  border-left: none;
-}
-
-.vgamepad-right {
-  grid-column: 3;
-  grid-row: 2;
-  border-radius: 0 6px 6px 0;
-}
-.vgamepad-right::after {
-  border-left: 10px solid rgba(255, 255, 255, 0.5);
-  border-right: none;
-}
-
-/* D-pad pressed state */
-.vgamepad-up.pressed,
-.vgamepad-down.pressed,
-.vgamepad-left.pressed,
-.vgamepad-right.pressed {
-  background: rgba(230, 0, 18, 0.6);
-  border-color: rgba(230, 0, 18, 0.8);
-}
-
-/* ---- Middle: SELECT / START ---- */
-.vgamepad-middle {
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  align-self: flex-end;
-  margin-bottom: 8px;
-}
-
-.vgamepad-fn {
-  padding: 6px 14px;
-  background: rgba(60, 60, 80, 0.7);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 7px;
-  letter-spacing: 1px;
-}
-
-.vgamepad-fn.pressed {
-  background: rgba(230, 0, 18, 0.5);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* ---- A / B buttons ---- */
-.vgamepad-ab {
-  display: flex;
-  gap: 14px;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.vgamepad-action {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: background 0.08s, transform 0.06s;
-}
-
-.vgamepad-a {
-  background: rgba(230, 0, 18, 0.6);
-  margin-bottom: 20px;
-}
-
-.vgamepad-b {
-  background: rgba(40, 40, 60, 0.8);
-}
-
-.vgamepad-action.pressed {
-  transform: scale(0.92);
-  background: rgba(230, 0, 18, 0.85);
-  border-color: rgba(230, 0, 18, 0.9);
-}
-
-/* ---- Mobile player adjustments when gamepad is visible ---- */
+/* ---- Mobile player adjustments ---- */
 @media (pointer: coarse) {
-  /* On touch devices, auto-hide keyboard key hints */
+  /* Hide keyboard key hints on touch */
   .player-keys {
     display: none;
   }
 
-  /* Make player go fullscreen-ish for better game area */
+  /* Fullscreen player layout on mobile */
+  .player-overlay.visible {
+    align-items: stretch;
+  }
+
   .player-container {
     border-radius: 0;
     width: 100vw;
     max-width: 100vw;
-  }
-
-  .player-canvas-wrapper {
-    aspect-ratio: unset;
-    /* Canvas takes available height minus header and controls */
-    height: calc(100vh - 48px - 48px);
-    max-height: 70vh;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    border: none;
+    box-shadow: none;
   }
 
   .player-header {
-    padding: 8px 14px;
+    padding: 6px 12px;
+    flex-shrink: 0;
   }
 
+  .player-title {
+    font-size: 12px;
+  }
+
+  /* Canvas fills available space between header and gamepad */
+  .player-canvas-wrapper {
+    aspect-ratio: unset;
+    flex: 0 0 auto;
+    /* NES aspect ratio: 256:240 ≈ 16:15 — use full width */
+    height: calc(100vw * 240 / 256);
+    max-height: 45vh;
+  }
+
+  /* Gamepad container fills remaining vertical space */
+  #gamepad-container {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* Virtual Gamepad — visible on touch devices */
+  .vgamepad {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 140px;
+    padding: 8px 16px;
+    background: #111118;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  .vgamepad * {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---- Left: D-Pad ---- */
+  .vgamepad-left {
+    flex-shrink: 0;
+  }
+
+  .vgamepad-dpad {
+    display: grid;
+    grid-template-columns: 48px 48px 48px;
+    grid-template-rows: 48px 48px 48px;
+    gap: 0;
+  }
+
+  .vgamepad-dpad-center {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 2px;
+  }
+
+  .vgamepad-up,
+  .vgamepad-down,
+  .vgamepad-left-btn,
+  .vgamepad-right-btn {
+    background: rgba(50, 50, 70, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.06s;
+  }
+
+  .vgamepad-arrow {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1;
+  }
+
+  .vgamepad-up { grid-column: 2; grid-row: 1; border-radius: 6px 6px 0 0; }
+  .vgamepad-down { grid-column: 2; grid-row: 3; border-radius: 0 0 6px 6px; }
+  .vgamepad-left-btn { grid-column: 1; grid-row: 2; border-radius: 6px 0 0 6px; }
+  .vgamepad-right-btn { grid-column: 3; grid-row: 2; border-radius: 0 6px 6px 0; }
+
+  .vgamepad-up.pressed,
+  .vgamepad-down.pressed,
+  .vgamepad-left-btn.pressed,
+  .vgamepad-right-btn.pressed {
+    background: rgba(230, 0, 18, 0.7);
+    border-color: rgba(230, 0, 18, 0.9);
+  }
+
+  .vgamepad-up.pressed .vgamepad-arrow,
+  .vgamepad-down.pressed .vgamepad-arrow,
+  .vgamepad-left-btn.pressed .vgamepad-arrow,
+  .vgamepad-right-btn.pressed .vgamepad-arrow {
+    color: #fff;
+  }
+
+  /* ---- Center: SELECT / START ---- */
+  .vgamepad-center {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .vgamepad-fn {
+    padding: 8px 18px;
+    background: rgba(60, 60, 80, 0.8);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+  }
+
+  .vgamepad-fn.pressed {
+    background: rgba(230, 0, 18, 0.6);
+    color: #fff;
+  }
+
+  /* ---- Right: A / B buttons ---- */
+  .vgamepad-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .vgamepad-action {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    border: 2.5px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    transition: background 0.06s, transform 0.06s;
+  }
+
+  .vgamepad-a {
+    background: rgba(230, 0, 18, 0.65);
+    margin-top: -24px;
+  }
+
+  .vgamepad-b {
+    background: rgba(50, 50, 70, 0.85);
+    margin-top: 24px;
+  }
+
+  .vgamepad-action.pressed {
+    transform: scale(0.9);
+    background: rgba(230, 0, 18, 0.9);
+    border-color: rgba(230, 0, 18, 0.95);
+    box-shadow: 0 0 16px rgba(230, 0, 18, 0.4);
+  }
+
+  /* Player controls bar — compact at bottom */
   .player-controls {
-    padding: 8px 12px;
+    padding: 6px 10px;
+    gap: 4px;
+    flex-shrink: 0;
+    background: #0a0a12;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .player-btn {
-    padding: 5px 10px;
+    padding: 5px 8px;
     font-size: 8px;
   }
 }

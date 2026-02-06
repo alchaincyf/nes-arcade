@@ -1018,6 +1018,14 @@ canvas {
   .vgamepad * {
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Ensure all interactive elements receive pointer events */
+  [data-btn] {
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   /* ---- Left: D-Pad ---- */

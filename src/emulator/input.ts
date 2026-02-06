@@ -7,7 +7,7 @@ import type { KeyMapping } from '../types';
 import { DEFAULT_KEYS_P1, DEFAULT_KEYS_P2 } from '../types';
 
 /** jsnes 按钮常量（与 jsnes Controller 对应） */
-const BUTTONS = {
+export const BUTTONS = {
   A: 0,
   B: 1,
   SELECT: 2,

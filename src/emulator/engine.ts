@@ -208,6 +208,15 @@ export class NesEmulator {
     return this.audio.muted;
   }
 
+  /** Controller button press (for virtual gamepad) */
+  buttonDown(player: number, button: number): void {
+    this.nes.buttonDown(player, button);
+  }
+
+  buttonUp(player: number, button: number): void {
+    this.nes.buttonUp(player, button);
+  }
+
   /** 按键配置 */
   setKeysP1(keys: KeyMapping): void {
     this.input.setKeysP1(keys);

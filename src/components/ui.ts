@@ -66,6 +66,11 @@ export class GameUI {
     return document.getElementById('nes-canvas') as HTMLCanvasElement | null;
   }
 
+  /** Get the gamepad container for virtual controls */
+  getGamepadContainer(): HTMLElement | null {
+    return document.getElementById('gamepad-container');
+  }
+
   /** Show the player modal for a game */
   openPlayer(game: Game): void {
     this.currentGame = game;
@@ -225,6 +230,7 @@ export class GameUI {
           <div class="player-canvas-wrapper">
             <canvas class="player-canvas" id="nes-canvas" width="256" height="240"></canvas>
             <div class="player-scanlines"></div>
+            <div id="gamepad-container"></div>
             <div class="player-loading" id="player-loading">
               <div class="player-loading-spinner"></div>
               <div class="player-loading-text">ROM LOADING...</div>

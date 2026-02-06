@@ -2,6 +2,7 @@ import { Game } from '@/types';
 import { GAMES } from '@/data/games';
 import { NesEmulator } from '@/emulator';
 import { GameUI } from '@/components/ui';
+import { VirtualGamepad } from '@/components/virtual-gamepad';
 
 /* ===========================
    Initialise modules
@@ -10,13 +11,17 @@ import { GameUI } from '@/components/ui';
 const appRoot = document.getElementById('app')!;
 
 const emulator = new NesEmulator();
+const gamepad = new VirtualGamepad();
 
 const ui = new GameUI(appRoot, {
   onGameSelect: handleGameSelect,
   onPlayerStart: () => emulator.start(),
   onPlayerPause: () => emulator.pause(),
   onPlayerReset: () => emulator.reset(),
-  onPlayerStop: () => emulator.stop(),
+  onPlayerStop: () => {
+    emulator.stop();
+    gamepad.hide();
+  },
   onPlayerFullscreen: () => {
     /* handled by UI class via CSS */
   },
@@ -58,6 +63,16 @@ async function handleGameSelect(game: Game): Promise<void> {
     emulator.loadRom(new Uint8Array(romData), game.id);
     ui.hidePlayerLoading();
     emulator.start();
+
+    // Show virtual gamepad on touch devices
+    const gpContainer = ui.getGamepadContainer();
+    if (gpContainer) {
+      gamepad.show(
+        gpContainer,
+        (player, button) => emulator.buttonDown(player, button),
+        (player, button) => emulator.buttonUp(player, button)
+      );
+    }
   } catch (err) {
     console.error('Failed to load game:', game.title, err);
     ui.hidePlayerLoading();

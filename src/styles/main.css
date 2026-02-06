@@ -1162,3 +1162,150 @@ canvas {
     font-size: 8px;
   }
 }
+
+/* ========================================
+   Key Configuration Modal
+   ======================================== */
+
+.keys-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.keys-modal-overlay.visible {
+  display: flex;
+}
+
+.keys-modal {
+  background: #16161e;
+  border: 2px solid rgba(230, 0, 18, 0.4);
+  border-radius: 12px;
+  width: 340px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.keys-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  color: #fff;
+}
+
+.keys-modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.keys-modal-close:hover {
+  color: #fff;
+}
+
+.keys-modal-body {
+  padding: 12px 16px;
+}
+
+.keys-modal-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.keys-modal-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keys-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.keys-modal-label {
+  width: 40px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.keys-modal-key {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(50, 50, 70, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.keys-modal-key:hover {
+  border-color: rgba(230, 0, 18, 0.5);
+  background: rgba(50, 50, 70, 0.8);
+}
+
+.keys-modal-key.listening {
+  border-color: rgba(230, 0, 18, 0.8);
+  background: rgba(230, 0, 18, 0.15);
+  animation: keys-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes keys-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.keys-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.keys-modal-btn {
+  padding: 7px 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(50, 50, 70, 0.6);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.keys-modal-btn:hover {
+  background: rgba(50, 50, 70, 0.9);
+  color: #fff;
+}
+
+.keys-modal-btn-primary {
+  background: rgba(230, 0, 18, 0.5);
+  border-color: rgba(230, 0, 18, 0.7);
+  color: #fff;
+}
+
+.keys-modal-btn-primary:hover {
+  background: rgba(230, 0, 18, 0.7);
+}

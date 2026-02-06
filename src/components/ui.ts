@@ -1,4 +1,8 @@
-import { Game, Genre, GenreInfo, GENRES, DEFAULT_KEYS_P1 } from '@/types';
+import {
+  Game, Genre, GenreInfo, GENRES,
+  KeyMapping, KeyAction, KEY_ACTIONS, KEY_ACTION_LABELS,
+  DEFAULT_KEYS_P1, keyCodeToLabel,
+} from '@/types';
 
 /** Genre icon lookup */
 const GENRE_MAP = new Map<Genre, GenreInfo>(GENRES.map((g) => [g.id, g]));
@@ -28,7 +32,10 @@ export interface UICallbacks {
   onPlayerStop: () => void;
   onPlayerFullscreen: () => void;
   onPlayerMute: () => void;
+  onKeysChanged: (keys: KeyMapping) => void;
 }
+
+const KEYS_STORAGE_KEY = 'nes-arcade-keys-p1';
 
 export class GameUI {
   private root: HTMLElement;
@@ -40,11 +47,32 @@ export class GameUI {
   private isMuted = false;
   private isFullscreen = false;
   private currentGame: Game | null = null;
+  private currentKeys: KeyMapping;
 
   constructor(rootEl: HTMLElement, callbacks: UICallbacks) {
     this.root = rootEl;
     this.callbacks = callbacks;
+    this.currentKeys = this.loadKeys();
     this.bindGlobalKeys();
+  }
+
+  /** 获取当前按键配置 */
+  getKeys(): KeyMapping {
+    return this.currentKeys;
+  }
+
+  private loadKeys(): KeyMapping {
+    try {
+      const saved = localStorage.getItem(KEYS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return { ...DEFAULT_KEYS_P1 };
+  }
+
+  private saveKeys(keys: KeyMapping): void {
+    this.currentKeys = keys;
+    localStorage.setItem(KEYS_STORAGE_KEY, JSON.stringify(keys));
+    this.callbacks.onKeysChanged(keys);
   }
 
   /* ===========================
@@ -242,30 +270,15 @@ export class GameUI {
             <button class="player-btn" id="btn-reset">RESET</button>
             <button class="player-btn" id="btn-fullscreen">FULL</button>
             <button class="player-btn" id="btn-mute">SOUND</button>
+            <button class="player-btn" id="btn-keys">KEYS</button>
           </div>
           <div class="player-keys">
             <div class="player-keys-title">操作说明</div>
-            <div class="player-keys-grid">
-              <div class="player-key-group">
-                <span class="key-badge">↑↓←→</span> 方向
-              </div>
-              <div class="player-key-group">
-                <span class="key-badge">Z</span> A键
-              </div>
-              <div class="player-key-group">
-                <span class="key-badge">X</span> B键
-              </div>
-              <div class="player-key-group">
-                <span class="key-badge">Enter</span> 开始
-              </div>
-              <div class="player-key-group">
-                <span class="key-badge">Shift</span> 选择
-              </div>
-              <div class="player-key-group">
-                <span class="key-badge">ESC</span> 退出
-              </div>
+            <div class="player-keys-grid" id="keys-display">
+              ${this.buildKeysDisplay()}
             </div>
           </div>
+          ${this.buildKeysModal()}
         </div>
       </div>
     `;
@@ -401,6 +414,7 @@ export class GameUI {
     document.getElementById('btn-reset')?.addEventListener('click', () => this.callbacks.onPlayerReset());
     document.getElementById('btn-fullscreen')?.addEventListener('click', () => this.toggleFullscreen());
     document.getElementById('btn-mute')?.addEventListener('click', () => this.toggleMute());
+    document.getElementById('btn-keys')?.addEventListener('click', () => this.openKeysModal());
 
     // Click outside player to close
     document.getElementById('player-overlay')?.addEventListener('click', (e) => {
@@ -441,5 +455,154 @@ export class GameUI {
       btn.classList.toggle('active', this.isMuted);
     }
     this.callbacks.onPlayerMute();
+  }
+
+  /* ===========================
+     Key Configuration
+     =========================== */
+
+  /** 将一个按键值（string | string[]）格式化为显示标签 */
+  private formatKeyLabel(codes: string | string[]): string {
+    const list = Array.isArray(codes) ? codes : [codes];
+    return list.map(keyCodeToLabel).join('/');
+  }
+
+  /** 构建按键提示显示 */
+  private buildKeysDisplay(): string {
+    const k = this.currentKeys;
+    return `
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.up)}</span> 上
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.down)}</span> 下
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.left)}</span> 左
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.right)}</span> 右
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.a)}</span> A键
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.b)}</span> B键
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.start)}</span> 开始
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">${this.formatKeyLabel(k.select)}</span> 选择
+      </div>
+      <div class="player-key-group">
+        <span class="key-badge">ESC</span> 退出
+      </div>
+    `;
+  }
+
+  /** 更新按键提示显示 */
+  private refreshKeysDisplay(): void {
+    const el = document.getElementById('keys-display');
+    if (el) el.innerHTML = this.buildKeysDisplay();
+  }
+
+  /** 构建按键设置弹窗 HTML */
+  private buildKeysModal(): string {
+    return `
+      <div class="keys-modal-overlay" id="keys-modal">
+        <div class="keys-modal">
+          <div class="keys-modal-header">
+            <span>按键设置</span>
+            <button class="keys-modal-close" id="keys-modal-close">&times;</button>
+          </div>
+          <div class="keys-modal-body">
+            <div class="keys-modal-hint">点击按键区域，然后按下新的按键进行绑定</div>
+            <div class="keys-modal-grid" id="keys-modal-grid"></div>
+          </div>
+          <div class="keys-modal-footer">
+            <button class="keys-modal-btn" id="keys-reset-default">恢复默认</button>
+            <button class="keys-modal-btn keys-modal-btn-primary" id="keys-save">保存</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /** 打开按键设置弹窗 */
+  private openKeysModal(): void {
+    const modal = document.getElementById('keys-modal');
+    if (!modal) return;
+    modal.classList.add('visible');
+
+    // 复制当前配置用于编辑
+    const editKeys: KeyMapping = JSON.parse(JSON.stringify(this.currentKeys));
+    this.renderKeysGrid(editKeys);
+
+    // 关闭按钮
+    document.getElementById('keys-modal-close')?.addEventListener('click', () => {
+      modal.classList.remove('visible');
+    });
+
+    // 恢复默认
+    document.getElementById('keys-reset-default')?.addEventListener('click', () => {
+      const defaultKeys: KeyMapping = JSON.parse(JSON.stringify(DEFAULT_KEYS_P1));
+      Object.assign(editKeys, defaultKeys);
+      this.renderKeysGrid(editKeys);
+    });
+
+    // 保存
+    document.getElementById('keys-save')?.addEventListener('click', () => {
+      this.saveKeys(editKeys);
+      this.refreshKeysDisplay();
+      modal.classList.remove('visible');
+    });
+
+    // 点击背景关闭
+    modal.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).id === 'keys-modal') {
+        modal.classList.remove('visible');
+      }
+    });
+  }
+
+  /** 渲染按键设置网格 */
+  private renderKeysGrid(editKeys: KeyMapping): void {
+    const grid = document.getElementById('keys-modal-grid');
+    if (!grid) return;
+
+    grid.innerHTML = KEY_ACTIONS.map((action) => {
+      const codes = editKeys[action];
+      const label = this.formatKeyLabel(codes);
+      return `
+        <div class="keys-modal-row" data-action="${action}">
+          <span class="keys-modal-label">${KEY_ACTION_LABELS[action]}</span>
+          <button class="keys-modal-key" data-action="${action}">${label}</button>
+        </div>
+      `;
+    }).join('');
+
+    // 给每个按键按钮绑定监听
+    grid.querySelectorAll<HTMLElement>('.keys-modal-key').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        // 高亮当前正在设置的按钮
+        grid.querySelectorAll('.keys-modal-key').forEach((b) => b.classList.remove('listening'));
+        btn.classList.add('listening');
+        btn.textContent = '按下按键...';
+
+        const handler = (e: KeyboardEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const action = btn.dataset.action as KeyAction;
+          // 设置为单个按键（用户自定义时不设多键绑定，简化操作）
+          editKeys[action] = e.code;
+          btn.textContent = keyCodeToLabel(e.code);
+          btn.classList.remove('listening');
+          document.removeEventListener('keydown', handler, { capture: true });
+        };
+
+        document.addEventListener('keydown', handler, { capture: true });
+      });
+    });
   }
 }

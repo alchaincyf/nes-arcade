@@ -43,41 +43,73 @@ export interface EmulatorState {
   fps: number;
 }
 
-/** 按键映射 */
+/** 按键映射 — 每个动作支持一个或多个按键 */
 export interface KeyMapping {
-  up: string;
-  down: string;
-  left: string;
-  right: string;
-  a: string;
-  b: string;
-  start: string;
-  select: string;
+  up: string | string[];
+  down: string | string[];
+  left: string | string[];
+  right: string | string[];
+  a: string | string[];
+  b: string | string[];
+  start: string | string[];
+  select: string | string[];
 }
 
-/** 默认按键 - 玩家1 */
+/** 按键动作名 */
+export type KeyAction = keyof KeyMapping;
+
+/** 所有按键动作列表（用于遍历） */
+export const KEY_ACTIONS: KeyAction[] = ['up', 'down', 'left', 'right', 'a', 'b', 'start', 'select'];
+
+/** 按键动作中文名 */
+export const KEY_ACTION_LABELS: Record<KeyAction, string> = {
+  up: '上', down: '下', left: '左', right: '右',
+  a: 'A键', b: 'B键', start: '开始', select: '选择',
+};
+
+/** 默认按键 - 玩家1（WASD + 方向键双重绑定，J/K 操作键） */
 export const DEFAULT_KEYS_P1: KeyMapping = {
-  up: 'ArrowUp',
-  down: 'ArrowDown',
-  left: 'ArrowLeft',
-  right: 'ArrowRight',
-  a: 'KeyZ',
-  b: 'KeyX',
+  up: ['ArrowUp', 'KeyW'],
+  down: ['ArrowDown', 'KeyS'],
+  left: ['ArrowLeft', 'KeyA'],
+  right: ['ArrowRight', 'KeyD'],
+  a: ['KeyK', 'KeyZ'],
+  b: ['KeyJ', 'KeyX'],
   start: 'Enter',
-  select: 'ShiftRight',
+  select: 'Space',
 };
 
 /** 默认按键 - 玩家2 */
 export const DEFAULT_KEYS_P2: KeyMapping = {
-  up: 'KeyW',
-  down: 'KeyS',
-  left: 'KeyA',
-  right: 'KeyD',
-  a: 'KeyG',
-  b: 'KeyH',
-  start: 'KeyT',
-  select: 'KeyY',
+  up: 'Numpad8',
+  down: 'Numpad5',
+  left: 'Numpad4',
+  right: 'Numpad6',
+  a: 'Numpad2',
+  b: 'Numpad1',
+  start: 'NumpadAdd',
+  select: 'Numpad0',
 };
+
+/** 将 KeyCode 转为可读的按键标签 */
+export function keyCodeToLabel(code: string): string {
+  const map: Record<string, string> = {
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+    KeyA: 'A', KeyB: 'B', KeyC: 'C', KeyD: 'D', KeyE: 'E', KeyF: 'F',
+    KeyG: 'G', KeyH: 'H', KeyI: 'I', KeyJ: 'J', KeyK: 'K', KeyL: 'L',
+    KeyM: 'M', KeyN: 'N', KeyO: 'O', KeyP: 'P', KeyQ: 'Q', KeyR: 'R',
+    KeyS: 'S', KeyT: 'T', KeyU: 'U', KeyV: 'V', KeyW: 'W', KeyX: 'X',
+    KeyY: 'Y', KeyZ: 'Z',
+    Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4',
+    Digit5: '5', Digit6: '6', Digit7: '7', Digit8: '8', Digit9: '9',
+    Space: 'Space', Enter: 'Enter', ShiftLeft: 'L-Shift', ShiftRight: 'R-Shift',
+    ControlLeft: 'L-Ctrl', ControlRight: 'R-Ctrl',
+    Numpad0: 'Num0', Numpad1: 'Num1', Numpad2: 'Num2', Numpad3: 'Num3',
+    Numpad4: 'Num4', Numpad5: 'Num5', Numpad6: 'Num6', Numpad7: 'Num7',
+    Numpad8: 'Num8', Numpad9: 'Num9', NumpadAdd: 'Num+',
+  };
+  return map[code] ?? code;
+}
 
 /** 分类列表 */
 export const GENRES: GenreInfo[] = [

@@ -26,7 +26,13 @@ const ui = new GameUI(appRoot, {
     /* handled by UI class via CSS */
   },
   onPlayerMute: () => emulator.toggleMute(),
+  onKeysChanged: (keys) => {
+    emulator.setKeysP1(keys);
+  },
 });
+
+// Apply saved key config on startup
+emulator.setKeysP1(ui.getKeys());
 
 /* ===========================
    Render

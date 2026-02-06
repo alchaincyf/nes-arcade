@@ -50,15 +50,19 @@ export class InputHandler {
     this.buildKeyMap();
   }
 
-  /** 构建 code -> {player, button} 查找表 */
+  /** 构建 code -> {player, button} 查找表（支持一个动作绑定多个键） */
   private buildKeyMap(): void {
     this.keyMap.clear();
-    for (const [name, code] of Object.entries(this.keysP1)) {
-      this.keyMap.set(code, { player: 1, button: KEY_TO_BUTTON[name as ButtonName] });
-    }
-    for (const [name, code] of Object.entries(this.keysP2)) {
-      this.keyMap.set(code, { player: 2, button: KEY_TO_BUTTON[name as ButtonName] });
-    }
+    const addMapping = (keys: KeyMapping, player: number) => {
+      for (const [name, codes] of Object.entries(keys)) {
+        const codeList = Array.isArray(codes) ? codes : [codes];
+        for (const code of codeList) {
+          this.keyMap.set(code, { player, button: KEY_TO_BUTTON[name as ButtonName] });
+        }
+      }
+    };
+    addMapping(this.keysP1, 1);
+    addMapping(this.keysP2, 2);
   }
 
   /** 需要阻止浏览器默认行为的按键集合 */
@@ -67,14 +71,17 @@ export class InputHandler {
   /** 构建需要拦截的按键集合 */
   private buildBlockedKeys(): void {
     this.blockedKeys.clear();
-    for (const code of Object.values(this.keysP1)) {
-      this.blockedKeys.add(code);
-    }
-    for (const code of Object.values(this.keysP2)) {
-      this.blockedKeys.add(code);
-    }
-    // 额外阻止 Space / Tab 防止页面滚动和焦点切换
-    this.blockedKeys.add('Space');
+    const addCodes = (keys: KeyMapping) => {
+      for (const codes of Object.values(keys)) {
+        const codeList = Array.isArray(codes) ? codes : [codes];
+        for (const code of codeList) {
+          this.blockedKeys.add(code);
+        }
+      }
+    };
+    addCodes(this.keysP1);
+    addCodes(this.keysP2);
+    // 额外阻止 Tab 防止焦点切换
     this.blockedKeys.add('Tab');
   }
 

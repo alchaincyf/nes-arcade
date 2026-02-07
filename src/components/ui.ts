@@ -472,16 +472,7 @@ export class GameUI {
     const k = this.currentKeys;
     return `
       <div class="player-key-group">
-        <span class="key-badge">${this.formatKeyLabel(k.up)}</span> 上
-      </div>
-      <div class="player-key-group">
-        <span class="key-badge">${this.formatKeyLabel(k.down)}</span> 下
-      </div>
-      <div class="player-key-group">
-        <span class="key-badge">${this.formatKeyLabel(k.left)}</span> 左
-      </div>
-      <div class="player-key-group">
-        <span class="key-badge">${this.formatKeyLabel(k.right)}</span> 右
+        <span class="key-badge">WASD/↑↓←→</span> 方向
       </div>
       <div class="player-key-group">
         <span class="key-badge">${this.formatKeyLabel(k.a)}</span> A键
